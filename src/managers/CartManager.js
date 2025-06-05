@@ -11,7 +11,6 @@ class CartManager {
             return JSON.parse(data);
         } catch (error) {
             if (error.code === 'ENOENT') {
-                // Si el archivo no existe, devuelve un array vacío
                 return [];
             }
             console.error('Error al leer carritos:', error);
