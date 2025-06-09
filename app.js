@@ -5,6 +5,7 @@ import { engine } from 'express-handlebars';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import methodOverride from 'method-override';
 import cartsRouter from './src/routes/carts.routes.js';
 import productsRouter from './src/routes/products.routes.js';
 import viewsRouter from './src/routes/views.routes.js';
@@ -32,6 +33,8 @@ app.set('views', path.join(_dirname, 'src', 'views'));
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
 app.use('/', viewsRouter);
+
+app.use(methodOverride('_method'));
 
 io.on('connection', async (socket) => {
     console.log('Nuevo cliente conectado');

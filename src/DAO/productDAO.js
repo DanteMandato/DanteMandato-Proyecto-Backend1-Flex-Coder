@@ -5,7 +5,7 @@ export class ProductDAO {
         const filter = query ? {
             $or: [
                 { category: { $regex: query, $options: 'i' } },
-                { status: query === 'true' ? true : query === 'false' ? false : undefined }
+                (query === 'true' || query === 'false' ? [{ status: query === 'true' }] : [])
             ]
         } : {};
 

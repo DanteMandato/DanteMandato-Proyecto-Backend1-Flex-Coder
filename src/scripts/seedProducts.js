@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import ProductModel from '../models/Product.model.js';
+import ProductModel from '../models/product.Model.js';
 
 dotenv.config();
 
@@ -14,7 +14,7 @@ const seedProducts = [
         code: 'SHAMP001',
         stock: 20,
         category: 'higiene',
-        thumbnails: ['shampoo1.jpg']
+        thumbnails: []
     },
     {
         title: 'Acondicionador sólido de coco',
@@ -23,7 +23,7 @@ const seedProducts = [
         code: 'ACOND001',
         stock: 15,
         category: 'higiene',
-        thumbnails: ['acondicionador1.jpg']
+        thumbnails: []
     },
     {
         title: 'Desodorante natural',
@@ -32,7 +32,7 @@ const seedProducts = [
         code: 'DEO001',
         stock: 10,
         category: 'cuidado personal',
-        thumbnails: ['desodorante.jpg']
+        thumbnails: []
     },
     {
         title: 'Agua Micelar',
@@ -41,7 +41,7 @@ const seedProducts = [
         code: 'AGMI001',
         stock: 15,
         category: 'limpieza',
-        thumbnails: ['aguamicelar.jpg']
+        thumbnails: []
     },
     {
         title: 'Bálsamo labial',
@@ -50,7 +50,7 @@ const seedProducts = [
         code: 'BAL001',
         stock: 15,
         category: 'cuidado personal',
-        thumbnails: ['balsamolabial.jpg']
+        thumbnails: []
     },
     {
         title: 'Serum Facial',
@@ -59,7 +59,7 @@ const seedProducts = [
         code: 'SERFAC001',
         stock: 15,
         category: 'cosmetica',
-        thumbnails: ['serumfacial.jpg']
+        thumbnails: []
     },
     {
         title: 'Tónica Facial',
@@ -68,7 +68,7 @@ const seedProducts = [
         code: 'TONFAC001',
         stock: 15,
         category: 'cosmetica',
-        thumbnails: ['tonicafacial.jpg']
+        thumbnails: []
     },
     {
         title: 'Gel contorno de ojos',
@@ -77,7 +77,7 @@ const seedProducts = [
         code: 'GELOJ001',
         stock: 15,
         category: 'cosmetica',
-        thumbnails: ['gelcontornoojos.jpg']
+        thumbnails: []
     },
     {
         title: 'Gel limpieza facial',
@@ -86,7 +86,7 @@ const seedProducts = [
         code: 'GELFAC001',
         stock: 15,
         category: 'limpieza',
-        thumbnails: ['gelfacial.jpg']
+        thumbnails: []
     },
     {
         title: 'Aceite corporal',
@@ -95,7 +95,7 @@ const seedProducts = [
         code: 'ACCO001',
         stock: 15,
         category: 'limpieza',
-        thumbnails: ['aceitecorporal1.jpg']
+        thumbnails: []
     }
 ];
 

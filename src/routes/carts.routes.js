@@ -1,90 +1,78 @@
 import { Router } from 'express';
-import { Cart } from '../models/carts.Model.js';
+import { CartDAO } from '../dao/CartDAO.js';
+import { ProductDAO } from '../dao/ProductDAO.js';
 
 const router = Router();
+const cartDAO = new CartDAO();
+const productDAO = new ProductDAO();
 
-router.get('/:cid', async (req, res) => {
+router.post('/purchase/:cid', async (req, res) => {
+    const { cid } = req.params;
+    const { paymentMethod, cardDetails } = req.body;
+
     try {
-        const cart = await Cart.findById(req.params.cid).populate('products.product').lean();
-        if (!cart) return res.status(404).json({ status: 'error', message: 'Carrito no encontrado' });
-
-        res.json({ status: 'success', payload: cart });
-    } catch (error) {
-        res.status(500).json({ status: 'error', message: error.message });
-    }
-});
-
-router.delete('/:cid/products/:pid', async (req, res) => {
-    try {
-        const { cid, pid } = req.params;
-        const cart = await Cart.findById(cid);
-        if (!cart) return res.status(404).json({ status: 'error', message: 'Carrito no encontrado' });
-
-        cart.products = cart.products.filter(p => p.product.toString() !== pid);
-        await cart.save();
-
-        res.json({ status: 'success', message: 'Producto eliminado del carrito' });
-    } catch (error) {
-        res.status(500).json({ status: 'error', message: error.message });
-    }
-});
-
-router.put('/:cid', async (req, res) => {
-    try {
-        const { cid } = req.params;
-        const products = req.body.products;
-
-        const cart = await Cart.findById(cid);
-        if (!cart) return res.status(404).json({ status: 'error', message: 'Carrito no encontrado' });
-
-        cart.products = products;
-        await cart.save();
-
-        res.json({ status: 'success', message: 'Carrito actualizado', payload: cart });
-    } catch (error) {
-        res.status(500).json({ status: 'error', message: error.message });
-    }
-});
-
-router.put('/:cid/products/:pid', async (req, res) => {
-    try {
-        const { cid, pid } = req.params;
-        const { quantity } = req.body;
-
-        if (!quantity || quantity < 1) {
-            return res.status(400).json({ status: 'error', message: 'Cantidad inválida' });
+        if (!paymentMethod) {
+            return res.status(400).json({ error: 'Debe seleccionar un método de pago.' });
         }
 
-        const cart = await Cart.findById(cid);
-        if (!cart) return res.status(404).json({ status: 'error', message: 'Carrito no encontrado' });
-
-        const productInCart = cart.products.find(p => p.product.toString() === pid);
-        if (!productInCart) {
-            return res.status(404).json({ status: 'error', message: 'Producto no encontrado en carrito' });
+        if ((paymentMethod === 'tarjeta' || paymentMethod === 'debito') && (!cardDetails || !cardDetails.number || !cardDetails.name || !cardDetails.exp || !cardDetails.cvv)) {
+            return res.status(400).json({ error: 'Datos de tarjeta incompletos.' });
         }
 
-        productInCart.quantity = quantity;
-        await cart.save();
+        const cart = await cartDAO.getCartById(cid);
+        if (!cart || cart.products.length === 0) {
+            return res.status(404).json({ error: 'El carrito no existe o está vacío.' });
+        }
 
-        res.json({ status: 'success', message: 'Cantidad actualizada', payload: cart });
+        const notProcessed = [];
+        const ticketProducts = [];
+        let total = 0;
+
+        for (const item of cart.products) {
+            const product = await productDAO.getProductById(item.product._id);
+            if (product && product.stock >= item.quantity) {
+                await productDAO.updateProduct(product._id, {
+                    stock: product.stock - item.quantity
+                });
+                ticketProducts.push({
+                    _id: product._id,
+                    title: product.title,
+                    quantity: item.quantity,
+                    price: product.price
+                });
+                total += product.price * item.quantity;
+            } else {
+                notProcessed.push({
+                    _id: product._id,
+                    title: product.title,
+                    requested: item.quantity,
+                    available: product?.stock || 0
+                });
+            }
+        }
+
+        await cartDAO.updateCartProducts(cid, notProcessed.map(p => ({
+            product: p._id,
+            quantity: p.requested
+        })));
+
+        const ticket = {
+            code: 'TCKT-' + Date.now(),
+            amount: total,
+            purchaser: 'usuario@ejemplo.com',
+            products: ticketProducts,
+            payment: paymentMethod
+        };
+
+        return res.status(200).json({
+            message: 'Compra procesada con éxito.',
+            ticket,
+            notProcessed
+        });
+
     } catch (error) {
-        res.status(500).json({ status: 'error', message: error.message });
-    }
-});
-
-router.delete('/:cid', async (req, res) => {
-    try {
-        const { cid } = req.params;
-
-        const cart = await Cart.findById(cid);
-        if (!cart) return res.status(404).json({ status: 'error', message: 'Carrito no encontrado' });
-
-        cart.products = [];
-        await cart.save();
-
-        res.json({ status: 'success', message: 'Carrito vaciado' });
-    } catch (error) {
-        res.status(500).json({ status: 'error', message: error.message });
+        console.error('Error en purchase:', error);
+        return res.status(500).json({ error: 'Error interno al procesar la compra.' });
     }
 });
 

@@ -1,0 +1,117 @@
+<h1>Carrito</h1>
+
+{{#if products.length}}
+<table>
+    <thead>
+        <tr>
+            <th>Imagen</th>
+            <th>Producto</th>
+            <th>Precio</th>
+            <th>Cantidad</th>
+            <th>Subtotal</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each products}}
+        <tr>
+            <td><img src="{{this.thumbnail}}" alt="{{this.title}}" width="60" /></td>
+            <td>{{this.title}}</td>
+            <td>${{this.price}}</td>
+            <td>{{this.quantity}}</td>
+            <td>${{this.subtotal}}</td>
+            <td>
+                <form method="POST" action="/api/carts/{{../cartId}}/products/{{this._id}}?_method=DELETE">
+                    <button type="submit">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+
+<h3>Total: ${{total}}</h3>
+
+<form method="POST" action="/api/carts/{{cartId}}?_method=DELETE">
+    <button type="submit">Vaciar carrito</button>
+</form>
+
+<a href="/products">Seguir comprando</a>
+
+<button id="finalizePurchaseBtn" class="btn btn-success">Finalizar compra</button>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.getElementById('finalizePurchaseBtn').addEventListener('click', async () => {
+        const { value: paymentMethod } = await Swal.fire({
+            title: 'Selecciona un método de pago',
+            input: 'select',
+            inputOptions: {
+                tarjeta: 'Tarjeta de crédito',
+                debito: 'Débito',
+                efectivo: 'Efectivo'
+            },
+            inputPlaceholder: 'Selecciona una opción',
+            showCancelButton: true
+        });
+
+        if (!paymentMethod) return;
+
+        let paymentData = {};
+
+        if (paymentMethod === 'tarjeta' || paymentMethod === 'debito') {
+            const { value: cardDetails } = await Swal.fire({
+                title: 'Ingresa datos de la tarjeta',
+                html: `
+            <input id="swal-input1" class="swal2-input" placeholder="Número de tarjeta">
+            <input id="swal-input2" class="swal2-input" placeholder="Nombre en la tarjeta">
+            <input id="swal-input3" class="swal2-input" placeholder="Vencimiento (MM/AA)">
+            <input id="swal-input4" class="swal2-input" placeholder="CVV">
+            `,
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        number: document.getElementById('swal-input1').value,
+                        name: document.getElementById('swal-input2').value,
+                        exp: document.getElementById('swal-input3').value,
+                        cvv: document.getElementById('swal-input4').value
+                    };
+                }
+            });
+
+            if (!cardDetails?.number || !cardDetails?.name || !cardDetails?.exp || !cardDetails?.cvv) {
+                return Swal.fire('Error', 'Todos los campos de la tarjeta son obligatorios.', 'error');
+            }
+
+            paymentData = { paymentMethod, cardDetails };
+        } else {
+            paymentData = { paymentMethod };
+        }
+
+        const cartId = '{{cartId}}';
+
+        try {
+            const response = await fetch(`/api/carts/purchase/${cartId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(paymentData)
+            });
+
+            if (response.ok) {
+                await Swal.fire('¡Compra realizada!', 'Gracias por tu compra.', 'success');
+                window.location.href = '/products';
+            } else {
+                const result = await response.json();
+                Swal.fire('Error', result.error || 'No se pudo completar la compra.', 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            Swal.fire('Error', 'Ocurrió un error inesperado.', 'error');
+        }
+    });
+</script>
+
+{{else}}
+<p>El carrito está vacío.</p>
+<a href="/products">Ver productos</a>
+{{/if}}
